@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Çekilişe Katıl</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>🎁 Canlı Çekiliş Odası</h2>
+        <div id="hostArea" style="display: none;">
+            <p>İzleyicilerin katılması için bu linki paylaşın:</p>
+            <div class="link-box" id="shareLink"></div>
+        </div>
+
+        <div class="timer" id="timerDisplay">Yükleniyor...</div>
+
+        <div id="joinForm">
+            <input type="text" id="username" placeholder="Twitch / YouTube Adınız">
+            <button onclick="joinGiveaway()" id="btnJoin">Katıl</button>
+            <p id="joinStatus" style="font-size: 0.9em;"></p>
+        </div>
+
+        <div class="winners-box" id="winnersBox">
+            <h3>🏆 Kazananlar 🏆</h3>
+            <ul id="winnersList" style="list-style:none; padding:0; margin:0; font-weight:bold;"></ul>
+        </div>
+
+        <h3>Katılımcılar (<span id="count">0</span>)</h3>
+        <ul class="participant-list" id="participantsList"></ul>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnQe8qIalF-7uxtszHRVB7k8tS4-1JyCdmMo4UWwldNeSMfr941D0gyWuzwZ5idoSN/exec ';
+        const urlParams = new URLSearchParams(window.location.search);
+        const giveawayId = urlParams.get('id');
+        const isHost = urlParams.get('host') === 'true';
+        
+        let endTime = 0;
+        let winnersCount = 1;
+        let participantsData = [];
+        let isGiveawayEnded = false;
+
+        if (!giveawayId) {
+            document.body.innerHTML = "<h2>Hata: Çekiliş ID bulunamadı!</h2>";
+        }
+
+        if (isHost) {
+            document.getElementById('hostArea').style.display = 'block';
+            // Paylaşma linkinden '&host=true' kısmını çıkararak göster
+            document.getElementById('shareLink').innerText = window.location.href.replace('&host=true', '');
+        }
+
+        // Katılım İşlemi
+        async function joinGiveaway() {
+            const username = document.getElementById('username').value.trim();
+            const btn = document.getElementById('btnJoin');
+            const status = document.getElementById('joinStatus');
+
+            if (!username) return alert("Lütfen adınızı girin!");
+            if (localStorage.getItem('joined_' + giveawayId)) return alert("Bu cihazdan zaten katıldınız!");
+
+            btn.disabled = true;
+            status.innerText = "Kaydediliyor...";
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'join', id: giveawayId, username: username }),
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    status.style.color = "green";
+                    status.innerText = "Başarıyla katıldınız!";
+                    localStorage.setItem('joined_' + giveawayId, 'true');
+                    fetchData(); // Listeyi hemen güncelle
+                } else {
+                    status.style.color = "red";
+                    status.innerText = result.message;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                status.innerText = "Hata oluştu!";
+                btn.disabled = false;
+            }
+        }
+
+        // Verileri Google Sheets'ten Çekme (Polling)
+        async function fetchData() {
+            if(isGiveawayEnded) return; // Çekiliş bittiyse istek atma
+            
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=get&id=${giveawayId}`);
+                const result = await response.json();
+
+                if (result.giveaway) {
+                    endTime = result.giveaway.endTime;
+                    winnersCount = result.giveaway.winnersCount;
+                    participantsData = result.participants || [];
+                    
+                    document.getElementById('count').innerText = participantsData.length;
+                    const listHtml = participantsData.map(p => `<li>👤 ${p}</li>`).join('');
+                    document.getElementById('participantsList').innerHTML = listHtml;
+                }
+            } catch (error) {
+                console.log("Veri çekilemedi...");
+            }
+        }
+
+        // Zamanlayıcı
+        setInterval(() => {
+            if (endTime === 0 || isGiveawayEnded) return;
+            
+            const now = new Date().getTime();
+            const distance = endTime - now;
+
+            if (distance <= 0) {
+                document.getElementById('timerDisplay').innerText = "Süre Bitti!";
+                document.getElementById('joinForm').style.display = 'none';
+                endGiveaway();
+            } else {
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                document.getElementById('timerDisplay').innerText = `${minutes}:${seconds < 10 ? '0':''}${seconds}`;
+            }
+        }, 1000);
+
+        function endGiveaway() {
+            isGiveawayEnded = true;
+            if (participantsData.length === 0) {
+                document.getElementById('winnersBox').style.display = 'block';
+                document.getElementById('winnersBox').innerHTML = "<h3>Katılımcı bulunamadı.</h3>";
+                return;
+            }
+
+            // Rastgele Kazanan Seçimi (Frontend'de yapıyoruz)
+            let shuffled = participantsData.sort(() => 0.5 - Math.random());
+            let winners = shuffled.slice(0, winnersCount);
+
+            document.getElementById('winnersBox').style.display = 'block';
+            document.getElementById('winnersList').innerHTML = winners.map(w => `<li>🎉 ${w}</li>`).join('');
+        }
+
+        // Sayfa açıldığında veriyi çek ve her 4 saniyede bir güncelle
+        fetchData();
+        setInterval(fetchData, 4000);
+    </script>
+</body>
+</html>

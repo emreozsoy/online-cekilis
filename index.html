@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Çekiliş Oluştur</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>🎉 Yeni Çekiliş Oluştur</h2>
+        
+        <label>Süre (Dakika: 1 - 10):</label>
+        <input type="number" id="duration" min="1" max="10" value="5">
+        
+        <label>Kazanan Sayısı:</label>
+        <input type="number" id="winners" min="1" value="1">
+        
+        <button onclick="createGiveaway()" id="btnCreate">Oluştur</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        // BURAYA KENDİ URL'NİZİ YAPIŞTIRIN
+        const SCRIPT_URL = 'YOUR_GOOGLE_SCRIPT_URL';
+
+        function generateId() {
+            return Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        async function createGiveaway() {
+            const duration = document.getElementById('duration').value;
+            const winners = document.getElementById('winners').value;
+            const btn = document.getElementById('btnCreate');
+            const status = document.getElementById('status');
+
+            if(duration < 1 || duration > 10) return alert("Süre 1 ile 10 dakika arası olmalı!");
+
+            btn.disabled = true;
+            status.innerText = "Çekiliş oluşturuluyor, lütfen bekleyin...";
+
+            const id = generateId();
+            
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'create', id: id, duration: duration, winners: winners }),
+                    headers: { 'Content-Type': 'text/plain' } // CORS engeline takılmamak için text/plain
+                });
+                const result = await response.json();
+                
+                if(result.success) {
+                    // Oluşturuldu, yayıncıyı çekiliş sayfasına yönlendir
+                    window.location.href = `giveaway.html?id=${id}&host=true`;
+                }
+            } catch (error) {
+                status.innerText = "Bir hata oluştu!";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

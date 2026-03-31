@@ -1,0 +1,41 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 50px 20px;
+    margin: 0;
+}
+.container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+button {
+    background-color: #6441a5; /* Twitch moru tarzı */
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+button:hover { background-color: #4a2f7e; }
+.timer { font-size: 2em; font-weight: bold; color: #e74c3c; margin: 15px 0; }
+.participant-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; text-align: left; }
+.participant-list li { padding: 8px 15px; border-bottom: 1px solid #eee; }
+.winners-box { background: #2ecc71; color: white; padding: 15px; border-radius: 5px; margin-top: 20px; display: none; }
+.link-box { background: #e8f4f8; padding: 10px; word-break: break-all; margin-top: 10px; font-size: 0.9em; }

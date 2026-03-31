@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Çekilişe Katıl</title>
+    <title>Canlı Çekiliş</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,7 +31,9 @@
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnQe8qIalF-7uxtszHRVB7k8tS4-1JyCdmMo4UWwldNeSMfr941D0gyWuzwZ5idoSN/exec ';
+        // Sizin güncel linkiniz eklendi:
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa5a64-zcgFNxXP9lavQB35oQWNFtf70aGQ8w2hmHCtxx40Hr0R-M1ISWiHY5xQKsq/exec';
+        
         const urlParams = new URLSearchParams(window.location.search);
         const giveawayId = urlParams.get('id');
         const isHost = urlParams.get('host') === 'true';
@@ -42,16 +44,16 @@
         let isGiveawayEnded = false;
 
         if (!giveawayId) {
-            document.body.innerHTML = "<h2>Hata: Çekiliş ID bulunamadı!</h2>";
+            document.body.innerHTML = "<div class='container'><h2>Hata: Çekiliş ID bulunamadı! Lütfen ana sayfadan çekiliş oluşturun.</h2></div>";
         }
 
         if (isHost) {
             document.getElementById('hostArea').style.display = 'block';
-            // Paylaşma linkinden '&host=true' kısmını çıkararak göster
+            // Paylaşma linkinden '&host=true' kısmını çıkararak temiz linki göster
             document.getElementById('shareLink').innerText = window.location.href.replace('&host=true', '');
         }
 
-        // Katılım İşlemi
+        // Katılım İşlemi (GET metodu)
         async function joinGiveaway() {
             const username = document.getElementById('username').value.trim();
             const btn = document.getElementById('btnJoin');
@@ -64,11 +66,8 @@
             status.innerText = "Kaydediliyor...";
 
             try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'join', id: giveawayId, username: username }),
-                    headers: { 'Content-Type': 'text/plain' }
-                });
+                // İsmi URL'ye uygun formata (encodeURIComponent) çevirip yolluyoruz
+                const response = await fetch(`${SCRIPT_URL}?action=join&id=${giveawayId}&username=${encodeURIComponent(username)}`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -84,12 +83,13 @@
             } catch (error) {
                 status.innerText = "Hata oluştu!";
                 btn.disabled = false;
+                console.error("Hata Detayı:", error);
             }
         }
 
         // Verileri Google Sheets'ten Çekme (Polling)
         async function fetchData() {
-            if(isGiveawayEnded) return; // Çekiliş bittiyse istek atma
+            if(isGiveawayEnded) return; // Çekiliş bittiyse gereksiz istek atma
             
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=get&id=${giveawayId}`);
@@ -105,7 +105,7 @@
                     document.getElementById('participantsList').innerHTML = listHtml;
                 }
             } catch (error) {
-                console.log("Veri çekilemedi...");
+                console.log("Bağlantı bekleniyor...");
             }
         }
 
@@ -127,15 +127,16 @@
             }
         }, 1000);
 
+        // Çekilişi Sonlandırma ve Kazananları Seçme
         function endGiveaway() {
             isGiveawayEnded = true;
             if (participantsData.length === 0) {
                 document.getElementById('winnersBox').style.display = 'block';
-                document.getElementById('winnersBox').innerHTML = "<h3>Katılımcı bulunamadı.</h3>";
+                document.getElementById('winnersBox').innerHTML = "<h3>Kimse katılmadığı için kazanan yok.</h3>";
                 return;
             }
 
-            // Rastgele Kazanan Seçimi (Frontend'de yapıyoruz)
+            // Rastgele Kazanan Seçimi
             let shuffled = participantsData.sort(() => 0.5 - Math.random());
             let winners = shuffled.slice(0, winnersCount);
 
@@ -144,8 +145,10 @@
         }
 
         // Sayfa açıldığında veriyi çek ve her 4 saniyede bir güncelle
-        fetchData();
-        setInterval(fetchData, 4000);
+        if (giveawayId) {
+            fetchData();
+            setInterval(fetchData, 4000);
+        }
     </script>
 </body>
 </html>
